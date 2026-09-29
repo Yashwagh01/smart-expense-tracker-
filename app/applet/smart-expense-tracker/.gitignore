@@ -1,0 +1,11 @@
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+database/*.db-journal
+.DS_Store

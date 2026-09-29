@@ -1,0 +1,6 @@
+{
+  "name": "Smart Expense Tracker with Spending Prediction",
+  "description": "Professional smart expense tracker and personal finance platform with spending prediction, real-time analytics, budgeting, and financial insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
