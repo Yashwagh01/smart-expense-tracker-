@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Proxy requests to Supabase to prevent CORS and browser privacy blocks
+[[redirects]]
+  from = "/api/supabase/*"
+  to = "https://acemxzyszztshqyyitnf.supabase.co/:splat"
+  status = 200
+  force = true
+
+# Single Page Application routing (rewrites all non-file paths to index.html)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
