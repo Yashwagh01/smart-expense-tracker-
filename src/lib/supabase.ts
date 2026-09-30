@@ -396,6 +396,116 @@ export async function deleteGoalFromDb(goalId: string): Promise<boolean> {
 }
 
 // ==========================================
+// BILLS SYNC & PERSISTENCE
+// ==========================================
+
+export async function fetchBillsFromDb(userId?: string): Promise<Bill[] | null> {
+  try {
+    let query = supabase.from('bills').select('*').order('due_date', { ascending: true });
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    const { data, error } = await query;
+    if (error || !data) return null;
+
+    return data.map((b: any) => ({
+      id: b.id,
+      userId: b.user_id,
+      name: b.name,
+      amount: Number(b.amount),
+      dueDate: b.due_date || '',
+      status: (b.status as 'PAID' | 'UNPAID') || 'UNPAID',
+      recurring: Boolean(b.recurring)
+    }));
+  } catch {
+    return null;
+  }
+}
+
+export async function saveBillToDb(bill: Bill): Promise<boolean> {
+  try {
+    const row = {
+      id: bill.id,
+      user_id: bill.userId,
+      name: bill.name,
+      amount: bill.amount,
+      due_date: bill.dueDate,
+      status: bill.status,
+      recurring: Boolean(bill.recurring)
+    };
+    const { error } = await supabase.from('bills').upsert(row, { onConflict: 'id' });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteBillFromDb(billId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('bills').delete().eq('id', billId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ==========================================
+// SUBSCRIPTIONS SYNC & PERSISTENCE
+// ==========================================
+
+export async function fetchSubscriptionsFromDb(userId?: string): Promise<Subscription[] | null> {
+  try {
+    let query = supabase.from('subscriptions').select('*').order('next_payment_date', { ascending: true });
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    const { data, error } = await query;
+    if (error || !data) return null;
+
+    return data.map((s: any) => ({
+      id: s.id,
+      userId: s.user_id,
+      name: s.name,
+      amount: Number(s.amount || 0),
+      frequency: (s.frequency === 'ANNUALLY' || s.frequency === 'WEEKLY' ? s.frequency : 'MONTHLY') as 'MONTHLY' | 'ANNUALLY' | 'WEEKLY',
+      category: s.category || 'Subscriptions',
+      nextPaymentDate: s.next_payment_date || '',
+      status: (s.status === 'CANCELLED' ? 'CANCELLED' : 'ACTIVE') as 'ACTIVE' | 'CANCELLED'
+    }));
+  } catch {
+    return null;
+  }
+}
+
+export async function saveSubscriptionToDb(sub: Subscription): Promise<boolean> {
+  try {
+    const row = {
+      id: sub.id,
+      user_id: sub.userId,
+      name: sub.name,
+      amount: sub.amount,
+      frequency: sub.frequency,
+      category: sub.category,
+      next_payment_date: sub.nextPaymentDate,
+      status: sub.status
+    };
+    const { error } = await supabase.from('subscriptions').upsert(row, { onConflict: 'id' });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteSubscriptionFromDb(subId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('subscriptions').delete().eq('id', subId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ==========================================
 // USER ACCOUNTS / AUTH PERSISTENCE
 // ==========================================
 

@@ -3,15 +3,7 @@
   "services": {
     "app": {
       "root": ".",
-      "framework": "vite",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "ai",
-          "format": "url",
-          "env": "AI_URL"
-        }
-      ]
+      "framework": "vite"
     },
     "ai": {
       "root": "smart-expense-tracker/ai",
@@ -20,9 +12,9 @@
   },
   "rewrites": [
     {
-      "source": "/api/ai/:match*",
+      "source": "/api/ai/(.*)",
       "destination": {
-        "service": "app"
+        "service": "ai"
       }
     },
     {

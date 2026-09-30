@@ -18,7 +18,9 @@ import {
   fetchCustomersFromDb, saveCustomerToDb, deleteCustomerFromDb,
   saveTransactionToDb, deleteTransactionFromDb, saveBudgetToDb,
   deleteBudgetFromDb, saveGoalToDb, deleteGoalFromDb, saveUserToDb,
-  fetchTransactionsFromDb, fetchBudgetsFromDb, fetchGoalsFromDb
+  fetchTransactionsFromDb, fetchBudgetsFromDb, fetchGoalsFromDb,
+  fetchBillsFromDb, saveBillToDb, deleteBillFromDb,
+  fetchSubscriptionsFromDb, saveSubscriptionToDb, deleteSubscriptionFromDb
 } from './lib/supabase';
 import {
   Wallet, TrendingUp, PiggyBank, Sparkles, PieChart,
@@ -285,6 +287,22 @@ export default function App() {
         localStorage.setItem(`smartexpense_goals_${uid}`, JSON.stringify(scoped));
       }
     });
+
+    fetchBillsFromDb(uid).then(cloudBills => {
+      if (cloudBills) {
+        const scoped = cloudBills.filter(b => b.userId === uid);
+        setBills(scoped);
+        localStorage.setItem(`smartexpense_bills_${uid}`, JSON.stringify(scoped));
+      }
+    });
+
+    fetchSubscriptionsFromDb(uid).then(cloudSubs => {
+      if (cloudSubs) {
+        const scoped = cloudSubs.filter(s => s.userId === uid);
+        setSubscriptions(scoped);
+        localStorage.setItem(`smartexpense_subscriptions_${uid}`, JSON.stringify(scoped));
+      }
+    });
   }, [currentUser?.id]);
 
   // User-scoped LocalStorage Persistence (Never leak records between accounts)
@@ -506,7 +524,7 @@ export default function App() {
       }
       setTransactions(prev => prev.map(t => {
         if (t.id === editingTransaction.id) {
-          return {
+          const updatedTx: Transaction = {
             ...t,
             type: formType,
             amount: amt,
@@ -515,6 +533,8 @@ export default function App() {
             paymentMethod: formPaymentMethod,
             date: formDate
           };
+          saveTransactionToDb(updatedTx);
+          return updatedTx;
         }
         return t;
       }));
@@ -532,11 +552,13 @@ export default function App() {
       }
       setBudgets(prev => prev.map(b => {
         if (b.id === editingBudget.id) {
-          return {
+          const updatedB: Budget = {
             ...b,
             category: formCategory,
             amount: amt
           };
+          saveBudgetToDb(updatedB);
+          return updatedB;
         }
         return b;
       }));
@@ -575,6 +597,7 @@ export default function App() {
           date: new Date().toISOString().split('T')[0]
         };
         setTransactions(prev => [adjustTx, ...prev]);
+        saveTransactionToDb(adjustTx);
         showToast(`Balance adjusted to ₹${targetBal.toLocaleString()} (+₹${difference.toLocaleString()})`);
       } else {
         // Add expense adjustment
@@ -589,6 +612,7 @@ export default function App() {
           date: new Date().toISOString().split('T')[0]
         };
         setTransactions(prev => [adjustTx, ...prev]);
+        saveTransactionToDb(adjustTx);
         showToast(`Balance adjusted to ₹${targetBal.toLocaleString()} (-₹${Math.abs(difference).toLocaleString()})`);
       }
 
@@ -694,6 +718,7 @@ export default function App() {
         recurring: true
       };
       setBills(prev => [newBill, ...prev]);
+      saveBillToDb(newBill);
       showToast(`Bill "${formName}" scheduled!`);
     } else if (modalType === 'SUB') {
       if (isNaN(amt) || amt <= 0 || !formName.trim()) return;
@@ -708,6 +733,7 @@ export default function App() {
         status: 'ACTIVE'
       };
       setSubscriptions(prev => [newSub, ...prev]);
+      saveSubscriptionToDb(newSub);
       showToast(`Subscription "${formName}" added!`);
     }
 
@@ -721,8 +747,10 @@ export default function App() {
     setBills(prev => prev.map(b => {
       if (b.id === billId) {
         const nextStatus = b.status === 'PAID' ? 'UNPAID' : 'PAID';
+        const updatedBill: Bill = { ...b, status: nextStatus };
+        saveBillToDb(updatedBill);
         showToast(`Bill marked as ${nextStatus}`);
-        return { ...b, status: nextStatus };
+        return updatedBill;
       }
       return b;
     }));
@@ -732,8 +760,10 @@ export default function App() {
     setGoals(prev => prev.map(g => {
       if (g.id === goalId) {
         const updated = Math.max(0, Math.min(g.targetAmount, g.currentAmount + delta));
+        const updatedGoal: FinancialGoal = { ...g, currentAmount: updated };
+        saveGoalToDb(updatedGoal);
         showToast(`Updated savings for ${g.name}`);
-        return { ...g, currentAmount: updated };
+        return updatedGoal;
       }
       return g;
     }));
@@ -752,8 +782,14 @@ export default function App() {
       setGoals(prev => prev.filter(g => g.id !== id));
       deleteGoalFromDb(id);
     }
-    if (type === 'bl') setBills(prev => prev.filter(b => b.id !== id));
-    if (type === 's') setSubscriptions(prev => prev.filter(s => s.id !== id));
+    if (type === 'bl') {
+      setBills(prev => prev.filter(b => b.id !== id));
+      deleteBillFromDb(id);
+    }
+    if (type === 's') {
+      setSubscriptions(prev => prev.filter(s => s.id !== id));
+      deleteSubscriptionFromDb(id);
+    }
     showToast('Record deleted successfully');
   };
 
