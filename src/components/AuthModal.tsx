@@ -85,12 +85,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     // Persist to database
-    saveUserToDb(existingUser);
-    saveCustomerToDb({
+    await saveUserToDb(existingUser);
+    await saveCustomerToDb({
       id: existingUser.id,
       name: existingUser.name,
       email: existingUser.email,
-      phone: '+91 98000 00000',
       joinedDate: existingUser.createdAt,
       status: 'ACTIVE',
       tier: 'STANDARD',
@@ -182,12 +181,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       localStorage.removeItem('smartexpense_auth_status');
 
       // Persist to database
-      saveUserToDb(newUser);
-      saveCustomerToDb({
+      await saveUserToDb(newUser);
+      await saveCustomerToDb({
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        phone: '+91 98000 00000',
         joinedDate: newUser.createdAt,
         status: 'ACTIVE',
         tier: 'STANDARD',

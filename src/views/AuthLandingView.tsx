@@ -57,12 +57,11 @@ export const AuthLandingView: React.FC<AuthLandingViewProps> = ({
     }
 
     // Persist to cloud database
-    saveUserToDb(existingUser);
-    saveCustomerToDb({
+    await saveUserToDb(existingUser);
+    await saveCustomerToDb({
       id: existingUser.id,
       name: existingUser.name,
       email: existingUser.email,
-      phone: '+91 98000 00000',
       joinedDate: existingUser.createdAt,
       status: 'ACTIVE',
       tier: 'STANDARD',
@@ -80,7 +79,7 @@ export const AuthLandingView: React.FC<AuthLandingViewProps> = ({
 
     setTimeout(() => {
       onLoginSuccess(existingUser!);
-    }, 400);
+    }, 200);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,12 +144,11 @@ export const AuthLandingView: React.FC<AuthLandingViewProps> = ({
       localStorage.removeItem('smartexpense_auth_status');
 
       // Persist customer record and user profile to cloud database
-      saveUserToDb(newUser);
+      await saveUserToDb(newUser);
       const newCust: CustomerRecord = {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
-        phone: '+91 98000 00000',
         joinedDate: newUser.createdAt,
         status: 'ACTIVE',
         tier: 'STANDARD',
@@ -161,12 +159,12 @@ export const AuthLandingView: React.FC<AuthLandingViewProps> = ({
         activeBudgetsCount: 0,
         lastActive: 'Just now'
       };
-      saveCustomerToDb(newCust);
+      await saveCustomerToDb(newCust);
 
       setSuccess('Account created! Welcome to Smart Expense.');
       setTimeout(() => {
         onLoginSuccess(newUser);
-      }, 400);
+      }, 200);
 
     } else {
       // Login mode

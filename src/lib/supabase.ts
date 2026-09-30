@@ -4,30 +4,28 @@ import { CustomerRecord, Transaction, Budget, FinancialGoal, Bill, Subscription,
 export const SUPABASE_PROJECT_ID = 'acemxzyszztshqyyitnf';
 
 function getValidSupabaseUrl(): string {
-  let rawUrl = (import.meta.env.VITE_SUPABASE_URL as string)?.trim();
-  if (!rawUrl || rawUrl === 'undefined' || rawUrl === 'null') {
-    return `https://${SUPABASE_PROJECT_ID}.supabase.co`;
-  }
-  // Strip surrounding quotes
-  rawUrl = rawUrl.replace(/^["']|["']$/g, '').trim();
-
-  // If provided as just the project id (e.g. "acemxzyszztshqyyitnf")
-  if (!rawUrl.includes('.') && !rawUrl.includes('/')) {
-    return `https://${rawUrl}.supabase.co`;
-  }
-
-  // If domain without http/https protocol
-  if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
-    rawUrl = `https://${rawUrl}`;
-  }
-
-  try {
-    const parsed = new URL(rawUrl);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-      return parsed.origin;
+  const customUrl = (import.meta.env.VITE_SUPABASE_URL as string)?.trim();
+  if (customUrl && customUrl !== 'undefined' && customUrl !== 'null') {
+    let rawUrl = customUrl.replace(/^["']|["']$/g, '').trim();
+    if (!rawUrl.includes('.') && !rawUrl.includes('/')) {
+      return `https://${rawUrl}.supabase.co`;
     }
-  } catch {
-    // fallback if URL constructor fails
+    if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+      rawUrl = `https://${rawUrl}`;
+    }
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.origin;
+      }
+    } catch {
+      // fallback if URL constructor fails
+    }
+  }
+
+  // When running inside browser/iframe, use same-origin proxy to eliminate CORS & iframe network restrictions
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return `${window.location.origin}/api/supabase`;
   }
 
   return `https://${SUPABASE_PROJECT_ID}.supabase.co`;
@@ -54,7 +52,7 @@ export const supabase = (() => {
       }
     });
   } catch (err) {
-    console.error('Initial createClient error, using canonical fallback:', err);
+    console.warn('Initial createClient notice, using canonical fallback:', err);
     return createClient(`https://${SUPABASE_PROJECT_ID}.supabase.co`, 'sb_publishable_aIwh2ER68ajiIwWJ9J7OTw_rbHffKU4');
   }
 })();
@@ -178,12 +176,19 @@ export async function saveCustomerToDb(customer: CustomerRecord): Promise<{ succ
       updated_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('customers').upsert(row, { onConflict: 'email' });
+    let { error } = await supabase.from('customers').upsert(row, { onConflict: 'email' });
     if (error) {
+      console.warn('Upsert customers onConflict email failed, falling back to id:', error.message);
+      const retry = await supabase.from('customers').upsert(row, { onConflict: 'id' });
+      error = retry.error;
+    }
+    if (error) {
+      console.warn('saveCustomerToDb cloud notice:', error.message);
       return { success: false, error: error.message };
     }
     return { success: true };
   } catch (err: any) {
+    console.warn('saveCustomerToDb offline/network fallback:', err?.message);
     return { success: false, error: err?.message };
   }
 }
@@ -520,9 +525,19 @@ export async function saveUserToDb(user: User): Promise<boolean> {
       role: user.role || 'CUSTOMER',
       password_hash: user.passwordHash || null
     };
-    const { error } = await supabase.from('users').upsert(row, { onConflict: 'email' });
-    return !error;
-  } catch {
+    let { error } = await supabase.from('users').upsert(row, { onConflict: 'email' });
+    if (error) {
+      console.warn('Upsert users onConflict email failed, falling back to id:', error.message);
+      const retry = await supabase.from('users').upsert(row, { onConflict: 'id' });
+      error = retry.error;
+    }
+    if (error) {
+      console.warn('saveUserToDb cloud notice:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err: any) {
+    console.warn('saveUserToDb offline/network fallback:', err?.message);
     return false;
   }
 }

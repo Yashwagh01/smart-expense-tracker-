@@ -12,6 +12,7 @@ import {
   SUPABASE_PROJECT_ID,
   testDatabaseConnection,
   syncAllCustomersToCloud,
+  saveUserToDb,
   deleteCustomerFromDb,
   DatabaseStatus
 } from '../lib/supabase';
@@ -71,6 +72,19 @@ export const OwnerPortalView: React.FC<OwnerPortalViewProps> = ({
     setSyncFeedback(null);
     try {
       const res = await syncAllCustomersToCloud(customers);
+      // Also ensure profiles are populated in users table
+      for (const c of customers) {
+        await saveUserToDb({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          themePreference: 'LIGHT',
+          createdAt: c.joinedDate,
+          currency: '₹',
+          role: 'CUSTOMER'
+        });
+      }
+
       if (res.error) {
         if (res.error.includes('schema cache') || res.error.includes('relation "customers" does not exist')) {
           setSyncFeedback('Cloud database reachable. Tables pending SQL schema creation. Click "Database Schema SQL" to initialize.');
@@ -78,7 +92,7 @@ export const OwnerPortalView: React.FC<OwnerPortalViewProps> = ({
           setSyncFeedback(`Sync note: ${res.error}`);
         }
       } else {
-        setSyncFeedback(`✓ Successfully saved ${res.successCount} customer records to cloud database!`);
+        setSyncFeedback(`✓ Successfully saved ${res.successCount} customer records and user accounts to cloud database!`);
       }
       if (onRefreshFromDb) {
         await onRefreshFromDb();

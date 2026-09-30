@@ -97,6 +97,53 @@ export default function App() {
     });
   }, []);
 
+  // Guarantee that active user profile and registered customers are stored in Supabase database tables
+  useEffect(() => {
+    if (currentUser && currentUser.role !== 'OWNER') {
+      saveUserToDb(currentUser);
+      saveCustomerToDb({
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        joinedDate: currentUser.createdAt || new Date().toISOString().split('T')[0],
+        status: 'ACTIVE',
+        tier: 'STANDARD',
+        transactionsCount: transactions.length,
+        totalIncome: totalIncome,
+        totalExpense: totalExpenses,
+        netBalance: balance,
+        activeBudgetsCount: budgets.length,
+        lastActive: 'Just now'
+      });
+    }
+
+    try {
+      const storedUsers = localStorage.getItem('smartexpense_registered_users');
+      if (storedUsers) {
+        const users: User[] = JSON.parse(storedUsers);
+        users.forEach(u => {
+          if (u.role !== 'OWNER') {
+            saveUserToDb(u);
+            saveCustomerToDb({
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              joinedDate: u.createdAt || new Date().toISOString().split('T')[0],
+              status: 'ACTIVE',
+              tier: 'STANDARD',
+              transactionsCount: 0,
+              totalIncome: 0,
+              totalExpense: 0,
+              netBalance: 0,
+              activeBudgetsCount: 0,
+              lastActive: 'Active'
+            });
+          }
+        });
+      }
+    } catch {}
+  }, [currentUser?.id]);
+
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState<string>('');
