@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, HOLST, CustomerRecord } from '../types';
-import { OWNER_USER } from '../data/initialData';
 import { 
   LogIn, UserPlus, Shield, X, Mail, Lock, User as UserIcon, 
-  CheckCircle2, Crown, AlertCircle, ArrowRight, Check
+  CheckCircle2, AlertCircle, ArrowRight, Check
 } from 'lucide-react';
 import { saveUserToDb, saveCustomerToDb, fetchUserFromDb } from '../lib/supabase';
 
@@ -11,7 +10,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: User) => void;
-  initialMode?: 'login' | 'register' | 'owner';
+  initialMode?: 'login' | 'register';
   initialGoogleDirect?: boolean;
   isDark: boolean;
 }
@@ -24,7 +23,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialGoogleDirect = false,
   isDark
 }) => {
-  const [mode, setMode] = useState<'login' | 'register' | 'owner'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,10 +44,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setSuccess('');
       setShowGoogleChooser(initialGoogleDirect);
       setIsEnteringCustomGoogle(false);
-      if (initialMode === 'owner') {
-        setEmail('owner@smartexpense.com');
-        setPassword('Owner@2026');
-      } else if (initialMode === 'login') {
+      if (initialMode === 'login') {
         setEmail('rahul@example.com');
         setPassword('password123');
       } else {
@@ -119,26 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const storedUsersJson = localStorage.getItem('smartexpense_registered_users');
     let usersList: Array<User & { passwordHash?: string }> = storedUsersJson ? JSON.parse(storedUsersJson) : [];
 
-    // Owner Login check
     const cleanEmail = email.toLowerCase().trim();
-    const isOwnerEmail = cleanEmail === 'owner@smartexpense.com' || cleanEmail === 'owner' || cleanEmail === 'admin@smartexpense.com';
-    const isOwnerPass = password === 'Owner@2026' || password === 'owner123' || password === 'owner' || password === 'admin2026';
-
-    if (mode === 'owner' || isOwnerEmail) {
-      if (isOwnerPass) {
-        localStorage.setItem('smartexpense_current_user', JSON.stringify(OWNER_USER));
-        localStorage.removeItem('smartexpense_auth_status');
-        setSuccess('Authenticated as Platform Owner! Opening Customer Data Portal...');
-        setTimeout(() => {
-          onLoginSuccess(OWNER_USER);
-          onClose();
-        }, 350);
-        return;
-      } else {
-        setError('Incorrect owner credentials. Owner password is: Owner@2026');
-        return;
-      }
-    }
 
     if (mode === 'register') {
       if (!name.trim() || !email.trim() || !password) {
@@ -151,11 +128,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       if (password !== confirmPassword) {
         setError('Passwords do not match.');
-        return;
-      }
-
-      if (cleanEmail === 'owner@smartexpense.com' || cleanEmail === 'owner') {
-        setError('This email is reserved for platform administration.');
         return;
       }
 
@@ -259,52 +231,50 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Modal Header */}
         <div className="flex items-center space-x-3 mb-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: mode === 'owner' ? '#B45309' : HOLST.navy }}>
-            {mode === 'owner' ? <Crown className="w-5 h-5 text-amber-300" /> : <Shield className="w-5 h-5" />}
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: HOLST.navy }}>
+            <Shield className="w-5 h-5" />
           </div>
           <div>
             <h2 className="text-lg sm:text-xl font-bold tracking-tight">
-              {mode === 'owner' ? 'Owner / Admin Portal' : mode === 'login' ? 'Welcome Back' : 'Create an Account'}
+              {mode === 'login' ? 'Welcome Back' : 'Create an Account'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {mode === 'owner' ? 'Exclusive access to platform customer records' : 'Access your smart expense tracker & finances'}
+              Access your smart expense tracker & finances
             </p>
           </div>
         </div>
 
         {/* Top Mode Tabs (Login vs Register) */}
-        {mode !== 'owner' && (
-          <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 mb-4 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => { setMode('login'); setError(''); setSuccess(''); setShowGoogleChooser(false); }}
-              className={`py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center space-x-1.5 ${
-                mode === 'login'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Log In</span>
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => { setMode('register'); setError(''); setSuccess(''); setShowGoogleChooser(false); }}
-              className={`py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center space-x-1.5 ${
-                mode === 'register'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Register</span>
-            </button>
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 mb-4 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => { setMode('login'); setError(''); setSuccess(''); setShowGoogleChooser(false); }}
+            className={`py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center space-x-1.5 ${
+              mode === 'login'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Log In</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => { setMode('register'); setError(''); setSuccess(''); setShowGoogleChooser(false); }}
+            className={`py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center space-x-1.5 ${
+              mode === 'register'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Register</span>
+          </button>
+        </div>
 
         {/* GOOGLE SIGN IN SECTION */}
-        {mode !== 'owner' && !showGoogleChooser && (
+        {!showGoogleChooser && (
           <div className="mb-4">
             <button
               type="button"
@@ -434,14 +404,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold mb-1">
-              {mode === 'owner' ? 'Owner Login Name / Email' : 'Email Address'}
+              Email Address
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
               <input
                 type="text"
                 required
-                placeholder={mode === 'owner' ? "owner@smartexpense.com or 'owner'" : "your.email@example.com"}
+                placeholder="your.email@example.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -481,43 +451,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </div>
           )}
 
-          {/* Owner Credential Notice if Owner Mode */}
-          {mode === 'owner' && (
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-              <div className="flex items-center space-x-1.5 font-bold">
-                <Crown className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>Owner Credentials Notice</span>
-              </div>
-              <p className="text-[11px] text-amber-800 dark:text-amber-300">
-                • Login Name: <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 py-0.5 rounded">owner@smartexpense.com</code> or <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 py-0.5 rounded">owner</code>
-              </p>
-              <p className="text-[11px] text-amber-800 dark:text-amber-300">
-                • Password: <code className="font-mono bg-amber-100 dark:bg-amber-900 px-1 py-0.5 rounded">Owner@2026</code>
-              </p>
-            </div>
-          )}
-
           <button
             type="submit"
             className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white transition-all shadow-sm cursor-pointer hover:opacity-95 mt-2"
-            style={{ backgroundColor: mode === 'owner' ? '#B45309' : HOLST.navy }}
+            style={{ backgroundColor: HOLST.navy }}
           >
-            {mode === 'owner' ? 'Sign In as Platform Owner' : mode === 'login' ? 'Sign In' : 'Complete Registration'}
+            {mode === 'login' ? 'Sign In' : 'Complete Registration'}
           </button>
         </form>
 
-        {/* BOTTOM SECTION: Switcher & Discreet Owner Access at the very bottom */}
+        {/* BOTTOM SECTION: Switcher */}
         <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
           <div>
-            {mode === 'owner' ? (
-              <button
-                type="button"
-                onClick={() => { setMode('login'); setError(''); setSuccess(''); setEmail(''); setPassword(''); }}
-                className="text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
-              >
-                ← Return to Customer Sign In
-              </button>
-            ) : mode === 'login' ? (
+            {mode === 'login' ? (
               <p>
                 Need an account?{' '}
                 <button
@@ -541,24 +487,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </p>
             )}
           </div>
-
-          {/* Owner Link placed discreetly all the way at the bottom */}
-          {mode !== 'owner' && (
-            <button
-              type="button"
-              onClick={() => {
-                setMode('owner');
-                setEmail('owner@smartexpense.com');
-                setPassword('Owner@2026');
-                setError('');
-                setShowGoogleChooser(false);
-              }}
-              className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:underline flex items-center space-x-1 cursor-pointer opacity-80 hover:opacity-100"
-            >
-              <Crown className="w-3 h-3 text-amber-500" />
-              <span>Owner Portal</span>
-            </button>
-          )}
         </div>
 
       </div>

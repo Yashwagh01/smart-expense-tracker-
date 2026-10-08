@@ -4,7 +4,7 @@ import {
   AiPredictionResult, SpendingAnomaly, NotificationItem, CustomerRecord, HOLST
 } from './types';
 import {
-  DEFAULT_USER, OWNER_USER, INITIAL_CUSTOMERS, getInitialDemoTransactions, getInitialDemoBudgets,
+  DEFAULT_USER, INITIAL_CUSTOMERS, getInitialDemoTransactions, getInitialDemoBudgets,
   getInitialDemoGoals, getInitialDemoBills, getInitialDemoSubscriptions,
   DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES, DEFAULT_PAYMENT_METHODS
 } from './data/initialData';
@@ -13,9 +13,8 @@ import { AuthLandingView } from './views/AuthLandingView';
 import { ProfileView } from './views/ProfileView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { CategoriesView } from './views/CategoriesView';
-import { OwnerPortalView } from './views/OwnerPortalView';
 import {
-  fetchCustomersFromDb, saveCustomerToDb, deleteCustomerFromDb,
+  fetchCustomersFromDb, saveCustomerToDb,
   saveTransactionToDb, deleteTransactionFromDb, saveBudgetToDb,
   deleteBudgetFromDb, saveGoalToDb, deleteGoalFromDb, saveUserToDb,
   fetchTransactionsFromDb, fetchBudgetsFromDb, fetchGoalsFromDb,
@@ -28,7 +27,7 @@ import {
   AlertTriangle, Shield, Moon, Sun, Download, FileText,
   RefreshCw, Sliders, Eye, Lightbulb, Bell, Search, Filter,
   CheckCircle2, LogIn, LogOut, UserPlus, User as UserIcon, X, Check,
-  Pencil, Coffee, ShoppingBag, Car, DollarSign, Menu, Crown, Users, Tag, Database
+  Pencil, Coffee, ShoppingBag, Car, DollarSign, Menu, Tag, Database
 } from 'lucide-react';
 
 
@@ -59,14 +58,13 @@ export default function App() {
     return null;
   });
 
-  // Navigation Tab
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'owner'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [isGoogleDirectAuth, setIsGoogleDirectAuth] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
-  // Customer Management (Platform Owner Database)
+  // Customer Directory (Cloud Database Sync)
   const [customers, setCustomers] = useState<CustomerRecord[]>(() => {
     const saved = localStorage.getItem('smartexpense_customers');
     if (saved) {
@@ -99,7 +97,7 @@ export default function App() {
 
   // Guarantee that active user profile and registered customers are stored in Supabase database tables
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'OWNER') {
+    if (currentUser) {
       saveUserToDb(currentUser);
       saveCustomerToDb({
         id: currentUser.id,
@@ -122,23 +120,21 @@ export default function App() {
       if (storedUsers) {
         const users: User[] = JSON.parse(storedUsers);
         users.forEach(u => {
-          if (u.role !== 'OWNER') {
-            saveUserToDb(u);
-            saveCustomerToDb({
-              id: u.id,
-              name: u.name,
-              email: u.email,
-              joinedDate: u.createdAt || new Date().toISOString().split('T')[0],
-              status: 'ACTIVE',
-              tier: 'STANDARD',
-              transactionsCount: 0,
-              totalIncome: 0,
-              totalExpense: 0,
-              netBalance: 0,
-              activeBudgetsCount: 0,
-              lastActive: 'Active'
-            });
-          }
+          saveUserToDb(u);
+          saveCustomerToDb({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            joinedDate: u.createdAt || new Date().toISOString().split('T')[0],
+            status: 'ACTIVE',
+            tier: 'STANDARD',
+            transactionsCount: 0,
+            totalIncome: 0,
+            totalExpense: 0,
+            netBalance: 0,
+            activeBudgetsCount: 0,
+            lastActive: 'Active'
+          });
         });
       }
     } catch {}
@@ -231,27 +227,27 @@ export default function App() {
 
   // Financial Datasets strictly scoped to the active user (zero contamination across accounts)
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    if (!currentUser || currentUser.role === 'OWNER') return [];
+    if (!currentUser) return [];
     return getUserScopedStorage<Transaction>('transactions', currentUser.id);
   });
 
   const [budgets, setBudgets] = useState<Budget[]>(() => {
-    if (!currentUser || currentUser.role === 'OWNER') return [];
+    if (!currentUser) return [];
     return getUserScopedStorage<Budget>('budgets', currentUser.id);
   });
 
   const [goals, setGoals] = useState<FinancialGoal[]>(() => {
-    if (!currentUser || currentUser.role === 'OWNER') return [];
+    if (!currentUser) return [];
     return getUserScopedStorage<FinancialGoal>('goals', currentUser.id);
   });
 
   const [bills, setBills] = useState<Bill[]>(() => {
-    if (!currentUser || currentUser.role === 'OWNER') return [];
+    if (!currentUser) return [];
     return getUserScopedStorage<Bill>('bills', currentUser.id);
   });
 
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(() => {
-    if (!currentUser || currentUser.role === 'OWNER') return [];
+    if (!currentUser) return [];
     return getUserScopedStorage<Subscription>('subscriptions', currentUser.id);
   });
 
@@ -291,7 +287,7 @@ export default function App() {
 
   // Strict User Data Partitioning: Whenever currentUser changes, load ONLY that user's data
   useEffect(() => {
-    if (!currentUser || currentUser.role === 'OWNER') {
+    if (!currentUser) {
       setTransactions([]);
       setBudgets([]);
       setGoals([]);
@@ -354,31 +350,31 @@ export default function App() {
 
   // User-scoped LocalStorage Persistence (Never leak records between accounts)
   useEffect(() => {
-    if (currentUser && currentUser.id && currentUser.role !== 'OWNER') {
+    if (currentUser && currentUser.id) {
       localStorage.setItem(`smartexpense_transactions_${currentUser.id}`, JSON.stringify(transactions));
     }
   }, [transactions, currentUser?.id]);
 
   useEffect(() => {
-    if (currentUser && currentUser.id && currentUser.role !== 'OWNER') {
+    if (currentUser && currentUser.id) {
       localStorage.setItem(`smartexpense_budgets_${currentUser.id}`, JSON.stringify(budgets));
     }
   }, [budgets, currentUser?.id]);
 
   useEffect(() => {
-    if (currentUser && currentUser.id && currentUser.role !== 'OWNER') {
+    if (currentUser && currentUser.id) {
       localStorage.setItem(`smartexpense_goals_${currentUser.id}`, JSON.stringify(goals));
     }
   }, [goals, currentUser?.id]);
 
   useEffect(() => {
-    if (currentUser && currentUser.id && currentUser.role !== 'OWNER') {
+    if (currentUser && currentUser.id) {
       localStorage.setItem(`smartexpense_bills_${currentUser.id}`, JSON.stringify(bills));
     }
   }, [bills, currentUser?.id]);
 
   useEffect(() => {
-    if (currentUser && currentUser.id && currentUser.role !== 'OWNER') {
+    if (currentUser && currentUser.id) {
       localStorage.setItem(`smartexpense_subscriptions_${currentUser.id}`, JSON.stringify(subscriptions));
     }
   }, [subscriptions, currentUser?.id]);
@@ -871,9 +867,6 @@ export default function App() {
     setEditingTransaction(null);
     setEditingBudget(null);
     setModalType(null);
-    if (activeTab === 'owner_portal') {
-      setActiveTab('dashboard');
-    }
     showToast('Logged out successfully. All personal ledger data cleared.');
   };
 
@@ -884,45 +877,33 @@ export default function App() {
     setCurrentUser(user);
     setIsAuthModalOpen(false);
 
-    if (user.role === 'OWNER') {
-      setActiveTab('owner_portal');
-      showToast('👑 Welcome Platform Owner! Customer Data Portal Unlocked.');
-    } else {
-      // Persist user and customer profile to cloud database
-      saveUserToDb(user);
-      const newCust: CustomerRecord = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: '+91 98000 00000',
-        joinedDate: user.createdAt || new Date().toISOString().split('T')[0],
-        status: 'ACTIVE',
-        tier: 'STANDARD',
-        transactionsCount: 0,
-        totalIncome: 0,
-        totalExpense: 0,
-        netBalance: 0,
-        activeBudgetsCount: 0,
-        lastActive: 'Just now'
-      };
-      saveCustomerToDb(newCust);
+    // Persist user and customer profile to cloud database
+    saveUserToDb(user);
+    const newCust: CustomerRecord = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: '+91 98000 00000',
+      joinedDate: user.createdAt || new Date().toISOString().split('T')[0],
+      status: 'ACTIVE',
+      tier: 'STANDARD',
+      transactionsCount: 0,
+      totalIncome: 0,
+      totalExpense: 0,
+      netBalance: 0,
+      activeBudgetsCount: 0,
+      lastActive: 'Just now'
+    };
+    saveCustomerToDb(newCust);
 
-      // Ensure customer exists in platform directory
-      setCustomers(prev => {
-        if (prev.some(c => c.email.toLowerCase() === user.email.toLowerCase())) {
-          return prev;
-        }
-        return [newCust, ...prev];
-      });
-      showToast(`Welcome back, ${user.name}!`);
-    }
-  };
-
-  // Add Customer (from Owner Portal)
-  const handleAddCustomer = (newCustomer: CustomerRecord) => {
-    setCustomers(prev => [newCustomer, ...prev]);
-    saveCustomerToDb(newCustomer);
-    showToast(`Customer ${newCustomer.name} saved to database.`);
+    // Ensure customer exists in platform directory
+    setCustomers(prev => {
+      if (prev.some(c => c.email.toLowerCase() === user.email.toLowerCase())) {
+        return prev;
+      }
+      return [newCust, ...prev];
+    });
+    showToast(`Welcome back, ${user.name}!`);
   };
 
   // CSV Export
@@ -999,11 +980,6 @@ export default function App() {
                 <span className="font-extrabold text-xs xs:text-sm sm:text-base md:text-lg tracking-tight truncate block" style={{ color: isDark ? '#9FC0E3' : HOLST.navy }}>
                   SMART EXPENSE
                 </span>
-                {currentUser?.role === 'OWNER' && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hidden md:inline-block shrink-0">
-                    OWNER
-                  </span>
-                )}
               </div>
               <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 hidden md:block truncate">
                 TRACK · CONTROL · ANALYZE · PREDICT
@@ -1048,31 +1024,16 @@ export default function App() {
 
           {/* Authenticated User Controls */}
           <div className="flex items-center space-x-1 xs:space-x-1.5 pl-1 xs:pl-1.5 border-l border-slate-200 dark:border-slate-800 shrink-0">
-            {currentUser?.role === 'OWNER' ? (
-              <button
-                onClick={() => setActiveTab('owner_portal')}
-                className={`flex items-center space-x-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer ${
-                  activeTab === 'owner_portal'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-amber-500 hover:bg-amber-600 text-white'
-                }`}
-                title="Open Customer Data Portal"
-              >
-                <Crown className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Owner</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setActiveTab('profile')}
-                className="flex items-center space-x-1.5 p-1 xs:px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                title="View Account Profile"
-              >
-                <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                  {currentUser?.name ? currentUser.name.charAt(0) : 'U'}
-                </div>
-                <span className="hidden md:inline max-w-[80px] truncate">{currentUser?.name ? currentUser.name.split(' ')[0] : 'User'}</span>
-              </button>
-            )}
+            <button
+              onClick={() => setActiveTab('profile')}
+              className="flex items-center space-x-1.5 p-1 xs:px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="View Account Profile"
+            >
+              <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                {currentUser?.name ? currentUser.name.charAt(0) : 'U'}
+              </div>
+              <span className="hidden md:inline max-w-[80px] truncate">{currentUser?.name ? currentUser.name.split(' ')[0] : 'User'}</span>
+            </button>
 
             <button
               onClick={handleLogout}
@@ -1263,13 +1224,11 @@ export default function App() {
             {currentUser ? (
               <div className="space-y-2">
                 <button
-                  onClick={() => setActiveTab(currentUser.role === 'OWNER' ? 'owner_portal' : 'profile')}
+                  onClick={() => setActiveTab('profile')}
                   className="w-full flex items-center space-x-3 text-left hover:opacity-85 transition-opacity cursor-pointer p-1 rounded-lg"
                 >
-                  <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${
-                    currentUser.role === 'OWNER' ? 'bg-amber-600' : 'bg-blue-600'
-                  }`}>
-                    {currentUser.role === 'OWNER' ? '👑' : (currentUser.name ? currentUser.name.charAt(0) : 'U')}
+                  <div className="w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs bg-blue-600">
+                    {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                   </div>
                   <div className="truncate flex-1">
                     <p className="text-xs font-semibold truncate">{currentUser.name || 'User'}</p>
@@ -1316,39 +1275,6 @@ export default function App() {
                 </div>
               </div>
             )}
-
-            {/* OWNER SECTION - ALL THE WAY BOTTOM */}
-            <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800">
-              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 px-1">
-                Platform Administration
-              </div>
-              {currentUser?.role === 'OWNER' ? (
-                <button
-                  onClick={() => setActiveTab('owner_portal')}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    activeTab === 'owner_portal'
-                      ? 'bg-amber-600 text-white shadow-sm'
-                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80 hover:bg-amber-100 dark:hover:bg-amber-900/40'
-                  }`}
-                >
-                  <Crown className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span className="truncate">👑 Customer Data Portal</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => { setAuthMode('owner'); setIsAuthModalOpen(true); }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
-                  title="Platform Owner Portal Sign-In"
-                >
-                  <div className="flex items-center space-x-2">
-                    <Crown className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Owner Portal</span>
-                  </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 font-bold">Admin</span>
-                </button>
-              )}
-            </div>
-
           </div>
         </aside>
 
@@ -1570,37 +1496,7 @@ export default function App() {
                   </div>
                 )}
 
-                {/* OWNER SECTION - ALL THE WAY BOTTOM IN TABLET & PHONE */}
-                <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-800">
-                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-1">
-                    Platform Administration
-                  </div>
-                  {currentUser?.role === 'OWNER' ? (
-                    <button
-                      onClick={() => { setActiveTab('owner_portal'); setIsMobileMenuOpen(false); }}
-                      className={`w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                        activeTab === 'owner_portal'
-                          ? 'bg-amber-600 text-white shadow-xs'
-                          : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                      }`}
-                    >
-                      <Crown className="w-3.5 h-3.5 text-amber-400" />
-                      <span>👑 Customer Data Portal</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => { setAuthMode('owner'); setIsAuthModalOpen(true); setIsMobileMenuOpen(false); }}
-                      className="w-full flex items-center justify-between py-1.5 px-3 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer"
-                    >
-                      <div className="flex items-center space-x-1.5">
-                        <Crown className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Owner Portal</span>
-                      </div>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 font-bold">Admin</span>
-                    </button>
-                  )}
-                </div>
-
+                {/* Bottom of Mobile Drawer */}
               </div>
 
             </div>
@@ -1651,27 +1547,15 @@ export default function App() {
             <span>Analytics</span>
           </button>
 
-          {currentUser?.role === 'OWNER' ? (
-            <button
-              onClick={() => setActiveTab('owner_portal')}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-medium transition-all ${
-                activeTab === 'owner_portal' ? 'text-amber-600 dark:text-amber-400 font-bold scale-105' : 'text-slate-500 dark:text-slate-400'
-              }`}
-            >
-              <Crown className="w-4 h-4 mb-0.5 text-amber-500" />
-              <span>Customers</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-medium transition-all ${
-                activeTab === 'profile' ? 'text-blue-600 dark:text-blue-400 font-bold scale-105' : 'text-slate-500 dark:text-slate-400'
-              }`}
-            >
-              <UserIcon className="w-4 h-4 mb-0.5" />
-              <span>Profile</span>
-            </button>
-          )}
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-medium transition-all ${
+              activeTab === 'profile' ? 'text-blue-600 dark:text-blue-400 font-bold scale-105' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <UserIcon className="w-4 h-4 mb-0.5" />
+            <span>Profile</span>
+          </button>
 
           <button
             onClick={() => setIsMobileMenuOpen(true)}
@@ -3019,50 +2903,6 @@ export default function App() {
             </div>
           )}
 
-          {/* PLATFORM OWNER / CUSTOMER DATA PORTAL */}
-          {activeTab === 'owner_portal' && (
-            currentUser?.role === 'OWNER' ? (
-              <OwnerPortalView
-                customers={customers}
-                onAddCustomer={handleAddCustomer}
-                onDeleteCustomer={(customerId) => {
-                  setCustomers(prev => prev.filter(c => c.id !== customerId));
-                  deleteCustomerFromDb(customerId);
-                  showToast('Customer deleted from directory and database.');
-                }}
-                onRefreshFromDb={async () => {
-                  const res = await fetchCustomersFromDb();
-                  if (res.data && res.data.length > 0) {
-                    setCustomers(res.data);
-                  }
-                }}
-                isDark={isDark}
-              />
-            ) : (
-              <div className="max-w-md mx-auto py-12 text-center space-y-4">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shadow-md">
-                  <Crown className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-                </div>
-                <h2 className="text-xl font-bold">Owner Access Clearance Required</h2>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  The Customer Data Portal is strictly reserved for the platform owner to inspect customer accounts, financial ledgers, and transaction volume.
-                </p>
-                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-left text-xs space-y-1">
-                  <div className="font-bold text-amber-900 dark:text-amber-200">Owner Credentials:</div>
-                  <div className="text-amber-800 dark:text-amber-300">Login Name: <code className="font-mono font-bold">owner@smartexpense.com</code></div>
-                  <div className="text-amber-800 dark:text-amber-300">Password: <code className="font-mono font-bold">Owner@2026</code></div>
-                </div>
-                <div className="pt-2">
-                  <button
-                    onClick={() => { setAuthMode('owner'); setIsAuthModalOpen(true); }}
-                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 transition-all shadow-md cursor-pointer"
-                  >
-                    👑 Sign In as Platform Owner
-                  </button>
-                </div>
-              </div>
-            )
-          )}
 
         </main>
       </div>

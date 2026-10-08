@@ -1,15 +1,5 @@
 import { User, Transaction, Budget, FinancialGoal, Bill, Subscription, CustomerRecord } from '../types';
 
-export const OWNER_USER: User = {
-  id: 'owner_root',
-  name: 'Platform Owner (Admin)',
-  email: 'owner@smartexpense.com',
-  themePreference: 'LIGHT',
-  createdAt: '2026-01-01',
-  currency: '₹',
-  role: 'OWNER'
-};
-
 export const INITIAL_CUSTOMERS: CustomerRecord[] = [
   {
     id: 'user_1',

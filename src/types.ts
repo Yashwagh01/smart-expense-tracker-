@@ -5,7 +5,7 @@ export interface User {
   themePreference: 'LIGHT' | 'DARK';
   createdAt: string;
   currency: string;
-  role?: 'OWNER' | 'CUSTOMER';
+  role?: string;
   passwordHash?: string;
 }
 

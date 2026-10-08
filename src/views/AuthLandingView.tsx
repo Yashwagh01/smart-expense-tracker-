@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { User, HOLST, CustomerRecord } from '../types';
-import { OWNER_USER } from '../data/initialData';
 import { 
   PiggyBank, Sparkles, Sliders, CreditCard, ShieldCheck, 
   ArrowRight, Check, Sun, Moon, LogIn, UserPlus, Mail, Lock, 
-  User as UserIcon, AlertCircle, Crown, Eye, EyeOff
+  User as UserIcon, AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { saveUserToDb, saveCustomerToDb, fetchUserFromDb } from '../lib/supabase';
 
@@ -91,20 +90,6 @@ export const AuthLandingView: React.FC<AuthLandingViewProps> = ({
     const storedUsersJson = localStorage.getItem('smartexpense_registered_users');
     let usersList: Array<User & { passwordHash?: string }> = storedUsersJson ? JSON.parse(storedUsersJson) : [];
 
-    // Owner Login check
-    const isOwnerEmail = cleanEmail === 'owner@smartexpense.com' || cleanEmail === 'owner';
-    const isOwnerPass = password === 'Owner@2026' || password === 'owner123' || password === 'owner';
-
-    if (isOwnerEmail && isOwnerPass) {
-      localStorage.setItem('smartexpense_current_user', JSON.stringify(OWNER_USER));
-      localStorage.removeItem('smartexpense_auth_status');
-      setSuccess('Authenticated as Platform Owner! Opening Data Portal...');
-      setTimeout(() => {
-        onLoginSuccess(OWNER_USER);
-      }, 350);
-      return;
-    }
-
     if (authMode === 'register') {
       if (!name.trim() || !email.trim() || !password) {
         setError('Please fill in all required fields.');
@@ -116,10 +101,6 @@ export const AuthLandingView: React.FC<AuthLandingViewProps> = ({
       }
       if (password !== confirmPassword) {
         setError('Passwords do not match.');
-        return;
-      }
-      if (cleanEmail === 'owner@smartexpense.com' || cleanEmail === 'owner') {
-        setError('This email address is reserved.');
         return;
       }
       if (usersList.some(u => u.email.toLowerCase() === cleanEmail)) {
@@ -560,23 +541,9 @@ export const AuthLandingView: React.FC<AuthLandingViewProps> = ({
               </button>
             </form>
 
-            {/* Bottom Footer: Platform Owner & Disclaimer */}
-            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-              <span className="text-[11px] text-slate-400">100% Private · Local Storage</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('owner@smartexpense.com');
-                  setPassword('Owner@2026');
-                  setError('');
-                  setAuthMode('login');
-                  setSuccess('Owner credentials pre-filled. Click Sign In.');
-                }}
-                className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 hover:underline flex items-center space-x-1 cursor-pointer opacity-85 hover:opacity-100"
-              >
-                <Crown className="w-3 h-3 text-amber-500" />
-                <span>Owner Portal</span>
-              </button>
+            {/* Bottom Footer: Privacy Notice */}
+            <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center text-xs text-slate-500">
+              <span className="text-[11px] text-slate-400">100% Private · Secure Storage</span>
             </div>
 
           </div>
